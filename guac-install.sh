@@ -77,11 +77,11 @@ else
         echo
     done
     echo
-	read -s "Enter duo api host: " duoapihost
+	read -s -p "Enter duo api host: " duoapihost
 	echo
-	read -s "Enter duo integration key: " duointkey
+	read -s -p "Enter duo integration key: " duointkey
 	echo
-	read -s "Enter duo secret key: " duosecret
+	read -s -p "Enter duo secret key: " duosecret
 	echo
 fi
 
