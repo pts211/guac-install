@@ -77,6 +77,12 @@ else
         echo
     done
     echo
+	read -s "Enter duo api host: " duoapihost
+	echo
+	read -s "Enter duo integration key: " duointkey
+	echo
+	read -s "Enter duo secret key: " duosecret
+	echo
 fi
 
 debconf-set-selections <<< "mysql-server mysql-server/root_password password $mysqlrootpassword"
@@ -143,7 +149,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 apt-get -y install build-essential libcairo2-dev ${JPEGTURBO} ${LIBPNG} libossp-uuid-dev libavcodec-dev libavutil-dev \
 libswscale-dev libfreerdp-dev libpango1.0-dev libssh2-1-dev libtelnet-dev libvncserver-dev libpulse-dev libssl-dev \
-libvorbis-dev libwebp-dev ${MYSQL} libmysql-java ${TOMCAT} freerdp-x11 \
+libvorbis-dev libwebp-dev ${MYSQL} libmysql-java ${TOMCAT} freerdp-x11 pwgen \
 ghostscript wget dpkg-dev &>> ${LOG}
 
 if [ $? -ne 0 ]; then
@@ -185,20 +191,29 @@ fi
 echo -e "${GREEN}Downloaded guacamole-auth-jdbc-${GUACVERSION}.tar.gz${NC}"
 
 # Download Guacamole authentication extensions (TOTP)
-wget -q --show-progress -O guacamole-auth-totp-${GUACVERSION}.tar.gz ${SERVER}/binary/guacamole-auth-totp-${GUACVERSION}.tar.gz
+#wget -q --show-progress -O guacamole-auth-totp-${GUACVERSION}.tar.gz ${SERVER}/binary/guacamole-auth-totp-${GUACVERSION}.tar.gz
+#if [ $? -ne 0 ]; then
+#    echo -e "${RED}Failed to download guacamole-auth-totp-${GUACVERSION}.tar.gz"
+#    echo -e "${SERVER}/binary/guacamole-auth-totp-${GUACVERSION}.tar.gz"
+#    exit 1
+#fi
+#echo -e "${GREEN}Downloaded guacamole-auth-totp-${GUACVERSION}.tar.gz${NC}"
+
+# Download Guacamole authentication extensions (DUO)
+wget -q --show-progress -O guacamole-auth-duo-${GUACVERSION}.tar.gz ${SERVER}/binary/guacamole-auth-duo-${GUACVERSION}.tar.gz
 if [ $? -ne 0 ]; then
-    echo -e "${RED}Failed to download guacamole-auth-totp-${GUACVERSION}.tar.gz"
-    echo -e "${SERVER}/binary/guacamole-auth-totp-${GUACVERSION}.tar.gz"
+    echo -e "${RED}Failed to download guacamole-auth-duo-${GUACVERSION}.tar.gz"
+    echo -e "${SERVER}/binary/guacamole-auth-duo-${GUACVERSION}.tar.gz"
     exit 1
 fi
-echo -e "${GREEN}Downloaded guacamole-auth-totp-${GUACVERSION}.tar.gz${NC}"
+echo -e "${GREEN}Downloaded guacamole-auth-duo-${GUACVERSION}.tar.gz${NC}"
 
 echo -e "${GREEN}Downloading complete.${NC}"
 
 # Extract Guacamole files
 tar -xzf guacamole-server-${GUACVERSION}.tar.gz
 tar -xzf guacamole-auth-jdbc-${GUACVERSION}.tar.gz
-tar -xzf guacamole-auth-totp-${GUACVERSION}.tar.gz
+tar -xzf guacamole-auth-duo-${GUACVERSION}.tar.gz
 
 # Make directories
 mkdir -p /etc/guacamole/lib
@@ -249,7 +264,9 @@ ln -s /etc/guacamole/guacamole.war /var/lib/${TOMCAT}/webapps/
 ln -s /usr/local/lib/freerdp/guac*.so /usr/lib/${BUILD_FOLDER}/freerdp/
 ln -s /usr/share/java/mysql-connector-java.jar /etc/guacamole/lib/
 cp guacamole-auth-jdbc-${GUACVERSION}/mysql/guacamole-auth-jdbc-mysql-${GUACVERSION}.jar /etc/guacamole/extensions/
-cp guacamole-auth-totp-${GUACVERSION}/guacamole-auth-totp-${GUACVERSION}.jar /etc/guacamole/extensions/
+cp guacamole-auth-duo-${GUACVERSION}/guacamole-auth-duo-${GUACVERSION}.jar /etc/guacamole/extensions/
+
+duoapp="$(pwgen 40 1)"
 
 # Configure guacamole.properties
 rm -f /etc/guacamole/guacamole.properties
@@ -259,6 +276,10 @@ echo "mysql-port: 3306" >> /etc/guacamole/guacamole.properties
 echo "mysql-database: ${DB}" >> /etc/guacamole/guacamole.properties
 echo "mysql-username: ${mysqluser}" >> /etc/guacamole/guacamole.properties
 echo "mysql-password: ${guacdbuserpassword}" >> /etc/guacamole/guacamole.properties
+echo "duo-api-hostname: ${duoapihost}" >> /etc/guacamole/guacamole.properties
+echo "duo-integration-key: ${duointkey}" >> /etc/guacamole/guacamole.properties
+echo "duo-secret-key: ${duosecret}" >> /etc/guacamole/guacamole.properties
+echo "duo-application-key: ${duoapp}" >> /etc/guacamole/guacamole.properties
 
 # restart tomcat
 echo -e "${BLUE}Restarting tomcat...${NC}"
